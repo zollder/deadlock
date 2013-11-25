@@ -100,7 +100,7 @@ class PcMutex
 		// Unlocks pcMutex and restores thread priorities to their original values.
 		// This also resumes suspended priorities (with priority set to 0).
 		//-----------------------------------------------------------------------------------------
-		int unlock(float *currentThreadPriority)
+		int unlock()
 		{
 			int unlockStatus = pthread_mutex_unlock(&pcMutex);
 
@@ -117,31 +117,6 @@ class PcMutex
 
 			return unlockStatus;
 		}
-
-		//-----------------------------------------------------------------------------------------
-		// Sets critical section (resource) priority.
-		// CS priority should be known/determined before the mutex object is created.
-		//-----------------------------------------------------------------------------------------
-//		int setCsPriority(float maxPriority)
-//		{
-//			int unlockStatus = pthread_mutex_unlock(&pcMutex);
-//
-//			if (unlockStatus == 0)
-//			{
-//				printf("\nPcMutex: unlocked, recovering priorities, resuming suspended threads");
-//				while(!history->empty())
-//				{
-//					// recover native priorities (also resumes suspended threads)
-//					*(history->front().threadPtr) = history->front().nativePriority;
-//					history->pop_front();
-//
-//					// reset CS priority
-//					csPriority = 0;
-//				}
-//			}
-//
-//			return unlockStatus;
-//		}
 
 	//-----------------------------------------------------------------------------------------
 	// Private members

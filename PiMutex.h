@@ -76,7 +76,6 @@ class PiMutex
 					printf("\nPiMutex: update CS priority to: %f", *priorityPtr);
 					csPriority = *priorityPtr;
 				}
-
 			}
 			// if already locked by lower priority thread
 			else if (lockStatus == 16 && csPriority < *priorityPtr)
@@ -98,7 +97,7 @@ class PiMutex
 			}
 			else
 			{
-				printf("\nPiMutex: deadlock occured");
+				printf("\nPiMutex: deadlock occurred");
 				return -100;
 			}
 
@@ -109,7 +108,7 @@ class PiMutex
 		// Unlocks piMutex and restores thread priorities to their original values.
 		// This also resumes suspended priorities (with priority set to 0).
 		//-----------------------------------------------------------------------------------------
-		int unlock(float *priorityPtr)
+		int unlock()
 		{
 			int unlockStatus = pthread_mutex_unlock(&piMutex);
 

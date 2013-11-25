@@ -84,13 +84,13 @@ void * P1(void* arg)
 		{
 			printf("\nP1: try to unlock CS2");
 //			lockStatus = piMutex2.unlock(&priority[1]);		// use PI mutex
-			lockStatus = pcMutex2.unlock(&priority[1]);		// use PC mutex
+			lockStatus = pcMutex2.unlock();		// use PC mutex
 		}
 		else if (cnt == 4)
 		{
 			printf("\nP1: try to unlock CS1");
 //			lockStatus = piMutex1.unlock(&priority[1]);		// use PI mutex
-			lockStatus = pcMutex1.unlock(&priority[1]);		// use PC mutex
+			lockStatus = pcMutex1.unlock();		// use PC mutex
 		}
 		else if (cnt == 6)
 		{
@@ -153,13 +153,13 @@ void * P2(void* arg)
 		{
 			printf("\nP2: try to unlock CS1");
 //			lockStatus = piMutex1.unlock(&priority[2]);		// use PI mutex
-			lockStatus = pcMutex1.unlock(&priority[2]);		// use PC mutex
+			lockStatus = pcMutex1.unlock();		// use PC mutex
 		}
 		else if (cnt == 5)
 		{
 			printf("\nP2: try to unlock CS2");
 //			lockStatus = piMutex2.unlock(&priority[2]);		// use PI mutex
-			lockStatus = pcMutex2.unlock(&priority[2]);		// use PC mutex
+			lockStatus = pcMutex2.unlock();		// use PC mutex
 		}
 		else if (cnt == 6)
 		{
