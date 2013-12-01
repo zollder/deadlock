@@ -56,7 +56,7 @@ void * P1(void* arg)
 		pthread_mutex_lock(&mutex);
 
 		// wait for the message from ThreadManager and check if current thread is active
-		printf("\nP1: suspended, priority: %f", priority[1]);
+		printf("\nP1: suspended, priority: %.2f", priority[1]);
 		while (active_p != 1)
 			pthread_cond_wait(&cond, &mutex);
 
@@ -67,26 +67,26 @@ void * P1(void* arg)
 		{
 			// Try to acquire CS1 mutex after running for 1 unit
 			printf("\nP1: try to lock CS1");
-//			lockStatus = piMutex1.lock(&priority[1]);		// use PI mutex
-			lockStatus = pcMutex[0].lock(1, priority, pcMutex, mtxCount);		// use PC mutex
+			lockStatus = piMutex1.lock(&priority[1]);						// use PI mutex
+//			lockStatus = pcMutex[0].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
 		}
 		else if (cnt == 2)
 		{
 			printf("\nP1: try to lock CS2");
-//			lockStatus = piMutex2.lock(&priority[1]);		// use PI mutex
-			lockStatus = pcMutex[1].lock(1, priority, pcMutex, mtxCount);		// use PC mutex
+			lockStatus = piMutex2.lock(&priority[1]);						// use PI mutex
+//			lockStatus = pcMutex[1].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
 		}
 		else if (cnt == 3)
 		{
 			printf("\nP1: try to unlock CS2");
-//			lockStatus = piMutex2.unlock();					// use PI mutex
-			lockStatus = pcMutex[1].unlock();					// use PC mutex
+			lockStatus = piMutex2.unlock();					// use PI mutex
+//			lockStatus = pcMutex[1].unlock();				// use PC mutex
 		}
 		else if (cnt == 4)
 		{
 			printf("\nP1: try to unlock CS1");
-//			lockStatus = piMutex1.unlock();					// use PI mutex
-			lockStatus = pcMutex[0].unlock();					// use PC mutex
+			lockStatus = piMutex1.unlock();					// use PI mutex
+//			lockStatus = pcMutex[0].unlock();				// use PC mutex
 		}
 		else if (cnt == 6)
 		{
@@ -126,7 +126,7 @@ void * P2(void* arg)
 		pthread_mutex_lock(&mutex);
 
 		// wait for the message from ThreadManager and check if current thread is active
-		printf("\nP2: suspended, priority: %f", priority[2]);
+		printf("\nP2: suspended, priority: %.2f", priority[2]);
 		while (active_p != 2)
 			pthread_cond_wait(&cond, &mutex);
 
@@ -136,26 +136,26 @@ void * P2(void* arg)
 		if (cnt == 2)
 		{
 			printf("\nP2: try to lock CS2");
-//			lockStatus = piMutex2.lock(&priority[2]);		// use PI mutex
-			lockStatus = pcMutex[1].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
+			lockStatus = piMutex2.lock(&priority[2]);		// use PI mutex
+//			lockStatus = pcMutex[1].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
 		}
 		else if (cnt == 3)
 		{
 			printf("\nP2: try to lock CS1");
-//			lockStatus = piMutex1.lock(&priority[2]);		// use PI mutex
-			lockStatus = pcMutex[0].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
+			lockStatus = piMutex1.lock(&priority[2]);		// use PI mutex
+//			lockStatus = pcMutex[0].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
 		}
 		else if (cnt == 4)
 		{
 			printf("\nP2: try to unlock CS1");
-//			lockStatus = piMutex1.unlock();		// use PI mutex
-			lockStatus = pcMutex[0].unlock();		// use PC mutex
+			lockStatus = piMutex1.unlock();		// use PI mutex
+//			lockStatus = pcMutex[0].unlock();		// use PC mutex
 		}
 		else if (cnt == 5)
 		{
 			printf("\nP2: try to unlock CS2");
-//			lockStatus = piMutex2.unlock();		// use PI mutex
-			lockStatus = pcMutex[0].unlock();		// use PC mutex
+			lockStatus = piMutex2.unlock();		// use PI mutex
+//			lockStatus = pcMutex[1].unlock();		// use PC mutex
 		}
 		else if (cnt == 6)
 		{
@@ -215,6 +215,8 @@ int main(void)
 	// define CS priorities (based on static analysis)
 	pcMutex[0].setCsPriority(PRIORITY_P1);
 	pcMutex[1].setCsPriority(PRIORITY_P1);
+	pcMutex[0].setId(1);
+	pcMutex[1].setId(2);
 
 	// create and start periodic timer to generate pulses every second.
 	PulseTimer* timer = new PulseTimer(1);

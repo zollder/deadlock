@@ -7,7 +7,6 @@
 //-----------------------------------------------------------------------------------------
 // PcMutex (Priority Ceiling Mutex) class definition and implementation.
 // Works as a wrapper around standard pthread_mutex functions.
-// Implements Highest Locker’s Priority Protocol (HLP).
 //-----------------------------------------------------------------------------------------
 class PcMutex
 {
@@ -34,8 +33,7 @@ class PcMutex
 			pthread_mutex_init(&pcMutex, NULL);
 			history = new list<ThreadInfo>;
 
-			// Sets critical section (resource) priority to that of highest priority thread
-			// among those using the resource. Should be determined in advance with static analysis.
+			//Should be determined in advance with static analysis.
 			csPriority = 0;
 
 			// initilize lock status
@@ -55,8 +53,7 @@ class PcMutex
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Locks pcMutex for critical section.
-		// Hoist task priority to that of critical section (determined in advance by static analysis)
+		// Locks pcMutex for critical section based on priority ceiling protocol.
 		// Keeps references (history) to suspended tasks, as manager doesn't provide this functionality.
 		// Returns 0 (success) or error code (failure).
 		//-----------------------------------------------------------------------------------------
@@ -66,123 +63,84 @@ class PcMutex
 
 			bool lockExists = false;
 			bool self = false;
-			float maxCeiling = 0;
 			PcMutex *lockedMutex;
-			int csPosition = 0;
 
-			// verify if there are locked mutexes
+			// determine and initialize prerequisites
 			for (int i = 0; i < size; i++)
 			{
 				if (pcMutexes[i].isLocked())
 				{
 					lockExists = true;
 					lockedMutex = &pcMutexes[i];
-					csPosition = i;
-				}
-				if (pcMutexes[i].getCsOwner() == threadId)
-					self = true;
-				if (pcMutexes[i].getCsPriority() > maxCeiling)
-					maxCeiling = pcMutexes[i].getCsPriority();
-			}
-
-			// one of the external mutexes locked?
-			if (lockExists)
-			{
-				// locking thread is the same as the current thread (self)?
-				if (self && !isLocked())
-				{
-					// lock, update status, save info about locking thread
-					printf("\nPcMutex: locking CS, thread %d", threadId);
-					lockStatus = pthread_mutex_lock(&pcMutex);
-					locked = true;
-
-					printf("\nPcMutex: saving state, thread %d", threadId);
-					ThreadInfo threadData;
-					threadData.threadId = threadId;
-					threadData.threadPtr = &priorities[threadId];
-					threadData.nativePriority = priorities[threadId];
-					saveHistory(threadData);
-				}
-				// thread priority > ceiling and mutex unlocked?
-				else if (priorities[threadId] > maxCeiling && !isLocked())
-				{
-					// lock, update status, save info about locking thread
-					printf("\nPcMutex: locking CS, thread %d", threadId);
-					lockStatus = pthread_mutex_lock(&pcMutex);
-					locked = true;
-
-					printf("\nPcMutex: saving state, thread %d", threadId);
-					ThreadInfo threadData;
-					threadData.threadId = threadId;
-					threadData.threadPtr = &priorities[threadId];
-					threadData.nativePriority = priorities[threadId];
-					saveHistory(threadData);
-				}
-				// thread priority > ceiling and mutex locked?
-				else if (priorities[threadId] > maxCeiling && isLocked())
-				{
-					// save state, suspend thread
-					printf("\nPcMutex: CS already locked, suspend thread %d", threadId);
-
-					printf("\nPcMutex: saving state, thread %d", threadId);
-					ThreadInfo threadData;
-					threadData.threadId = threadId;
-					threadData.threadPtr = &priorities[threadId];
-					threadData.nativePriority = priorities[threadId];
-					saveHistory(threadData);
-
-					// suspend by setting its priority to 0
-					printf("\nPcMutex: suspend thread %d", threadId);
-					priorities[threadId] = 0;
-				}
-				// ceiling > locking thread priority > locked thread priority?
-				else if (priorities[threadId] > priorities[lockedMutex->getCsOwner()])
-				{
-					// save thread info in the target mutex
-					printf("\nPcMutex: saving state on target CS, thread %d", threadId);
-					ThreadInfo threadData;
-					threadData.threadId = threadId;
-					threadData.threadPtr = &priorities[threadId];
-					threadData.nativePriority = priorities[threadId];
-					lockedMutex->saveHistory(threadData);
-
-					// inherit priority
-					printf("\nPcMutex: inheriting CS's priority: %f", priorities[threadId]);
-					int ownerThreadId = lockedMutex->getCsOwner();
-					priorities[ownerThreadId] = priorities[threadId];
-
-					// suspend thread
-					printf("\nPcMutex: suspend thread %d", threadId);
-					priorities[threadId] = 0;
-				}
-				// suspend thread otherwise
-				else
-				{
-					printf("\nPcMutex: saving state on target CS, thread %d", threadId);
-					ThreadInfo threadData;
-					threadData.threadId = threadId;
-					threadData.threadPtr = &priorities[threadId];
-					threadData.nativePriority = priorities[threadId];
-					lockedMutex->saveHistory(threadData);
-
-					printf("\nPcMutex: suspend thread %d", threadId);
-					priorities[threadId] = 0;
+					if (pcMutexes[i].getCsOwner() == threadId)
+						self = true;
+					else
+						self = false;
 				}
 			}
-			// all critical sections unlocked
-			else
+
+			// if all mutexes are unlocked
+			if (!lockExists)
 			{
 				// lock CS, update status, save info about locking thread
-				printf("\nPcMutex: locking CS, thread %d", threadId);
-				lockStatus = pthread_mutex_lock(&pcMutex);
-				locked = true;
+				printf("\nPcMutex: locking CS%d, thread %d", getId(), threadId);
+				lockStatus = pthread_mutex_trylock(&pcMutex);
+				if (lockStatus != 0)
+					printf("\nPcMutex: ERROR LOCKING MUTEX id: %d", getId());
+				else
+					locked = true;
 
-				printf("\nPcMutex: saving state, thread %d", threadId);
-				ThreadInfo threadData;
-				threadData.threadId = threadId;
-				threadData.threadPtr = &priorities[threadId];
-				threadData.nativePriority = priorities[threadId];
-				saveHistory(threadData);
+				printf("\nPcMutex: saving thread %d state", threadId);
+				saveState(createDataObj(priorities, threadId));
+			}
+			// at least one mutex is locked by another or same thread
+			else if (self || priorities[threadId] > getCsPriority())
+			{
+				// if locking thread priority > ceiling OR another CS is locked by the same thread
+				// AND current CS is not locked => lock CS
+				if(!isLocked())
+				{
+					// lock CS, update status, save info about locking thread
+					printf("\nPcMutex: locking CS%d, thread %d", getId(), threadId);
+					lockStatus = pthread_mutex_trylock(&pcMutex);
+					if (lockStatus != 0)
+						printf("\nPcMutex: ERROR LOCKING MUTEX id: %d", getId());
+					else
+						locked = true;
+
+					printf("\nPcMutex: saving thread %d state", threadId);
+					saveState(createDataObj(priorities, threadId));
+				}
+				// suspend locking thread by setting its status to 0
+				else
+				{
+					printf("\nPcMutex: CS%d already locked by thread %d", getId(), lockedMutex->getCsOwner());
+					printf("\nPcMutex: saving thread %d state", threadId);
+					saveState(createDataObj(priorities, threadId));
+
+					printf("\nPcMutex: suspend thread %d", threadId);
+					priorities[threadId] = 0;
+				}
+			}
+			// if (locking priority) > (locked priority), transfer priority (inheritance) and suspend locking thread
+			else
+			{
+				// identify target (locked) mutex owner (thread)
+				int lockedThreadId = lockedMutex->getCsOwner();
+				if ( priorities[threadId] > priorities[lockedThreadId])
+				{
+					// save donor thread info at locked/target mutex
+					printf("\nPcMutex: saving thread %d state on target CS%d", lockedThreadId, lockedMutex->getId());
+					lockedMutex->saveState(createDataObj(priorities, threadId));
+
+					// transfer priority to thread that is locking target mutex
+					printf("\nPcMutex: transferring priority %.2f to thread %d", priorities[threadId], lockedThreadId);
+					priorities[lockedThreadId] = priorities[threadId];
+				}
+
+				// suspend locking thread by setting its priority to 0
+				printf("\nPcMutex: suspend thread %d", threadId);
+				priorities[threadId] = 0;
 			}
 
 			return lockStatus;
@@ -195,31 +153,52 @@ class PcMutex
 		int unlock()
 		{
 			int unlockStatus = pthread_mutex_unlock(&pcMutex);
-
 			if (unlockStatus == 0)
 			{
-				printf("\nPcMutex: unlocking CS, recovering priorities, resuming suspended threads");
+				printf("\nPcMutex: unlocking CS%d, recovering priorities, resuming suspended threads", getId());
 				while(!history->empty())
 				{
 					// recover native priorities (also resumes suspended threads)
+					printf("\nPcMutex: recovering thread %d priority to %.2f",
+							history->front().threadId,
+							history->front().nativePriority);
 					*(history->front().threadPtr) = history->front().nativePriority;
 					history->pop_front();
 				}
+
+				printf("\nPcMutex: resetting CS locked status");
+				locked = false;
 			}
+			else
+				printf("\nPcMutex: ERROR UNLOCKING MUTEX");
 
 			return unlockStatus;
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Saves history.
+		// Creates ThreadInfo data holder. Returns created structure.
 		//-----------------------------------------------------------------------------------------
-		void saveHistory(ThreadInfo threadData)
+		ThreadInfo createDataObj(float priorities[], int threadId)
+		{
+			printf("\nPcMutex: creating thread %d data holder", threadId);
+			ThreadInfo threadData;
+			threadData.threadId = threadId;
+			threadData.threadPtr = &priorities[threadId];
+			threadData.nativePriority = priorities[threadId];
+
+			return threadData;
+		}
+
+		//-----------------------------------------------------------------------------------------
+		// Saves thread's state.
+		//-----------------------------------------------------------------------------------------
+		void saveState(ThreadInfo threadData)
 		{
 			history->push_front(threadData);
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Sets CS priority.
+		// Sets critical section priority.
 		//-----------------------------------------------------------------------------------------
 		void setCsPriority(float priority)
 		{
@@ -227,7 +206,7 @@ class PcMutex
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Returns CS priority.
+		// Returns critical section priority.
 		//-----------------------------------------------------------------------------------------
 		float getCsPriority()
 		{
@@ -235,7 +214,7 @@ class PcMutex
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Returns lock status of the mutex.
+		// Returns mutex lock status.
 		//-----------------------------------------------------------------------------------------
 		bool isLocked()
 		{
@@ -243,13 +222,28 @@ class PcMutex
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// Returns lock status of the mutex.
+		// Returns mutex owner (thread) id.
 		//-----------------------------------------------------------------------------------------
 		int getCsOwner()
 		{
 			return history->back().threadId;
 		}
 
+		//-----------------------------------------------------------------------------------------
+		// Sets mutex id.
+		//-----------------------------------------------------------------------------------------
+		void setId(int id)
+		{
+			mutexId = id;
+		}
+
+		//-----------------------------------------------------------------------------------------
+		// Returns mutex id.
+		//-----------------------------------------------------------------------------------------
+		int getId()
+		{
+			return mutexId;
+		}
 
 	//-----------------------------------------------------------------------------------------
 	// Private members
@@ -259,6 +253,7 @@ class PcMutex
 		list<ThreadInfo> *history;
 		float csPriority;
 		bool locked;
+		int mutexId;
 };
 
 #endif

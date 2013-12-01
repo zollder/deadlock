@@ -68,19 +68,19 @@ class PiMutex
 
 				if (csPriority > *priorityPtr)
 				{
-					printf("\nPiMutex: inherit CS priority: %f", *priorityPtr);
+					printf("\nPiMutex: inherit CS priority: %.2f", *priorityPtr);
 					*priorityPtr = csPriority;
 				}
 				else
 				{
-					printf("\nPiMutex: update CS priority to: %f", *priorityPtr);
+					printf("\nPiMutex: update CS priority to: %.2f", *priorityPtr);
 					csPriority = *priorityPtr;
 				}
 			}
 			// if already locked by lower priority thread
 			else if (lockStatus == 16 && csPriority < *priorityPtr)
 			{
-				printf("\nPiMutex: CS already locked, inherit priority: %f", *priorityPtr);
+				printf("\nPiMutex: CS already locked, inherit priority: %.2f", *priorityPtr);
 
 				// update CS and locking thread's priority to that of the attempting thread
 				csPriority = *priorityPtr;
