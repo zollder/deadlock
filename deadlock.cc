@@ -67,28 +67,28 @@ void * P1(void* arg)
 		{
 			// Try to acquire CS1 mutex after running for 1 unit
 			printf("\nP1: try to lock CS1");
-			lockStatus = piMutex1.lock(&priority[1]);						// use PI mutex
-//			lockStatus = pcMutex[0].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
+//			lockStatus = piMutex1.lock(&priority[1]);						// use PI mutex
+			lockStatus = pcMutex[0].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
 		}
 		else if (cnt == 2)
 		{
 			printf("\nP1: try to lock CS2");
-			lockStatus = piMutex2.lock(&priority[1]);						// use PI mutex
-//			lockStatus = pcMutex[1].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
+//			lockStatus = piMutex2.lock(&priority[1]);						// use PI mutex
+			lockStatus = pcMutex[1].lock(1, priority, pcMutex, mtxCount);	// use PC mutex
 		}
 		else if (cnt == 3)
 		{
 			printf("\nP1: try to unlock CS2");
-			lockStatus = piMutex2.unlock();					// use PI mutex
-//			lockStatus = pcMutex[1].unlock();				// use PC mutex
+//			lockStatus = piMutex2.unlock();					// use PI mutex
+			lockStatus = pcMutex[1].unlock();				// use PC mutex
 		}
 		else if (cnt == 4)
 		{
 			printf("\nP1: try to unlock CS1");
-			lockStatus = piMutex1.unlock();					// use PI mutex
-//			lockStatus = pcMutex[0].unlock();				// use PC mutex
+//			lockStatus = piMutex1.unlock();					// use PI mutex
+			lockStatus = pcMutex[0].unlock();				// use PC mutex
 		}
-		else if (cnt == 6)
+		else if (cnt == 5)
 		{
 			printf("\nP1: thread execution completed");
 
@@ -136,26 +136,26 @@ void * P2(void* arg)
 		if (cnt == 2)
 		{
 			printf("\nP2: try to lock CS2");
-			lockStatus = piMutex2.lock(&priority[2]);		// use PI mutex
-//			lockStatus = pcMutex[1].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
+//			lockStatus = piMutex2.lock(&priority[2]);		// use PI mutex
+			lockStatus = pcMutex[1].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
 		}
 		else if (cnt == 3)
 		{
 			printf("\nP2: try to lock CS1");
-			lockStatus = piMutex1.lock(&priority[2]);		// use PI mutex
-//			lockStatus = pcMutex[0].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
+//			lockStatus = piMutex1.lock(&priority[2]);		// use PI mutex
+			lockStatus = pcMutex[0].lock(2, priority, pcMutex, mtxCount);		// use PC mutex
 		}
 		else if (cnt == 4)
 		{
 			printf("\nP2: try to unlock CS1");
-			lockStatus = piMutex1.unlock();		// use PI mutex
-//			lockStatus = pcMutex[0].unlock();		// use PC mutex
+//			lockStatus = piMutex1.unlock();		// use PI mutex
+			lockStatus = pcMutex[0].unlock();		// use PC mutex
 		}
 		else if (cnt == 5)
 		{
 			printf("\nP2: try to unlock CS2");
-			lockStatus = piMutex2.unlock();		// use PI mutex
-//			lockStatus = pcMutex[1].unlock();		// use PC mutex
+//			lockStatus = piMutex2.unlock();		// use PI mutex
+			lockStatus = pcMutex[1].unlock();		// use PC mutex
 		}
 		else if (cnt == 6)
 		{
@@ -263,7 +263,7 @@ int main(void)
 
 		// wait for the timer pulse to fire
 		timer->wait();
-		printf("\n\n timer tick: %d\n", cnt);
+		printf("\n\n timer tick: %d\n", cnt+1);
 
 		cnt++;
 	}
